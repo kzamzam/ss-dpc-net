@@ -16,7 +16,7 @@ args = parser.parse_args()
 target_dir = args.target_dir
 os.makedirs(target_dir, exist_ok=True)
 seq_info = {}
-sequences = ['seq1']
+sequences = ['seq5']
 
 args.height = 240 # 240 or 360
 args.width = 376  # 376 or 564
@@ -39,6 +39,7 @@ def load_image(img_file):
 for i,seq in enumerate(sequences):     
     print('Sequence being processed:',seq)
     msckf_data = sio.loadmat(msckf_dir+seq+'.mat')  #sparse VO
+    print('gt: ', msckf_data['poses_gt'].shape, '  vo: ',msckf_data['poses_est'].shape)
     seq_dir = os.path.join(target_dir, seq)
     os.makedirs(seq_dir, exist_ok=True)
     os.makedirs(os.path.join(seq_dir, 'image_02'), exist_ok=True)
