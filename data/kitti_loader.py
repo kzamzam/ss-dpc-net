@@ -14,33 +14,37 @@ class KittiLoaderPytorch(torch.utils.data.Dataset):
     def __init__(self, basedir, config, seq, mode='train', transform_img=None, num_frames=None, augment=False, skip=None, augment_backwards=False):
         """
         Args:
-            directory to processed KITTI sequences
+            directory to processed KITTI or Field_dataset sequences
             config file
             desired sequences (use 'all' to load all sequences into the training dataset, except for the specified val and test sets)
             transform to apply to the images in the dataset
         """
-        seq_names= {'00': '2011_10_03_drive_0027_sync',
-                '01': '2011_10_03_drive_0042_sync',
-                '02': '2011_10_03_drive_0034_sync',
-                '04': '2011_09_30_drive_0016_sync',
-                '05': '2011_09_30_drive_0018_sync',
-                '06': '2011_09_30_drive_0020_sync',
-                '07': '2011_09_30_drive_0027_sync',
-                '08': '2011_09_30_drive_0028_sync',
-                '09': '2011_09_30_drive_0033_sync',
-                '10': '2011_09_30_drive_0034_sync',
-                '11': '11',
-                '12': '12',
-                '13': '13',
-                '14': '14',
-                '15': '15',
-                '16': '16',
-                '17': '17',
-                '18': '18',
-                '19': '19',
-                '20': '20',
-                '21': '21',
+        # seq names for kitti
+        # seq_names= {'00': '2011_10_03_drive_0027_sync',
+        #         '01': '2011_10_03_drive_0042_sync',
+        #         '02': '2011_10_03_drive_0034_sync',
+        #         '04': '2011_09_30_drive_0016_sync',
+        #         '05': '2011_09_30_drive_0018_sync',
+        #         '06': '2011_09_30_drive_0020_sync',
+        #         '07': '2011_09_30_drive_0027_sync',
+        #         '08': '2011_09_30_drive_0028_sync',
+        #         '09': '2011_09_30_drive_0033_sync',
+        #         '10': '2011_09_30_drive_0034_sync',
+        #         '11': '11',
+        #         '12': '12',
+        #         '13': '13',
+        #         '14': '14',
+        #         '15': '15',
+        #         '16': '16',
+        #         '17': '17',
+        #         '18': '18',
+        #         '19': '19',
+        #         '20': '20',
+        #         '21': '21',
             
+        #         }
+        seq_names= {'00': 'seq0',
+                '01': 'seq1',
                 }
 
         self.config = config
@@ -88,7 +92,6 @@ class KittiLoaderPytorch(torch.utils.data.Dataset):
         print('{} sequences: {}'.format(mode,seq))
         for s,i in zip(seq,range(0,len(seq))):
             data = sio.loadmat(os.path.join(basedir, seq_name[s],'{}_data.mat'.format(config['estimator_type'])))
-            
             self.left_cam_filenames.append(np.copy(data['cam_02'].reshape((-1,1))))
             self.right_cam_filenames.append(np.copy(data['cam_03'].reshape((-1,1))))
             self.raw_intrinsic_trials.append(np.copy(data['intrinsics']))
@@ -147,7 +150,11 @@ class KittiLoaderPytorch(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         imgs = []
         for i in range(0,self.seq_len):
-            imgs.append(self.load_image(self.left_img_samples[idx,i]))
+            if idx >= len(self.left_img_samples[:,0]):
+                print('Adding repeated image')
+                imgs.append(self.load_image(self.left_img_samples[-1,i]))
+            else:
+                imgs.append(self.load_image(self.left_img_samples[idx,i]))
          
         imgs = list(imgs)
         intrinsics = self.intrinsic_samples[idx] 

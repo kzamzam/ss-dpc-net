@@ -22,7 +22,7 @@ import os
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 parser = argparse.ArgumentParser(description='training arguments.')
-parser.add_argument('--data_dir', type=str, default='/media/datasets/KITTI-dpc')
+parser.add_argument('--data_dir', type=str, default='/home/keb-kz/Thesis/VIO/field-dpc-processed')
 parser.add_argument('--date', type=str, default='0000000')
 parser.add_argument('--train_seq', nargs='+', type=str, default=['all'])
 parser.add_argument('--val_seq', nargs='+',type=str, default=['00'])
@@ -88,14 +88,14 @@ def main():
     corr_pose_change_vecs_stacked = {}
     corr_stacked = {}
     losses_stacked = {}
-    best_val_loss, best_rot_seg_err, best_trans_err, most_loop_closure = {}, {}, {}, {}
-    best_rot_acc_epoch, best_trans_acc_epoch, best_loss_epoch, most_loop_closure_epoch = {}, {}, {}, {}
+    best_val_loss, best_trans_err, most_loop_closure = {}, {}, {}
+    best_trans_acc_epoch, best_loss_epoch, most_loop_closure_epoch = {}, {}, {}
     for key, dset in eval_dsets.items():
         est_traj_stacked[key] = np.empty((0,eval_dsets[key].dataset.raw_gt_trials[0].shape[0], 4, 4))
         losses_stacked[key] = np.empty((0, eval_dsets[key].dataset.raw_gt_trials[0].shape[0]-1))
         corr_pose_change_vecs_stacked[key] = np.empty((0, eval_dsets[key].dataset.raw_gt_trials[0].shape[0]-1,6))
         corr_stacked[key] = np.copy(corr_pose_change_vecs_stacked[key])
-        best_val_loss[key], best_rot_seg_err[key], best_trans_err[key], most_loop_closure[key]  = 1e5, 1e5, 1e5, 0
+        best_val_loss[key], best_trans_err[key], most_loop_closure[key]  = 1e5, 1e5, 0
 
     
     for epoch in range(0,config['num_epochs']):
@@ -123,7 +123,7 @@ def main():
                 
             ###plot trajectories    
             corr, gt_corr, corr_pose_change_vec, odom_pose_change_vec, gt_pose_change_vec, corr_traj, corr_traj_rot, est_traj, gt_traj, \
-                rot_seg_err, trans_err, cum_dist = test_trajectory(device, model, Reconstructor, dset, epoch)
+                trans_err, cum_dist = test_trajectory(device, model, Reconstructor, dset, epoch)
 
             corrections = plot_6_by_1(corr, title = 'Corrections')                                          
             correction_errors = plot_6_by_1(np.abs(corr - gt_corr), title='6x1 Errors')    
@@ -167,13 +167,13 @@ def main():
                     print("Lowest validation loss (saving model)")       
                     if key == 'val':
                         torch.save(state_dict_loss, 'results/{}/{}-best-loss-val_seq-{}-test_seq-{}.pth'.format(config['date'], ts, args.val_seq[0], args.test_seq[0]))
-                if rot_seg_err < best_rot_seg_err[key]:
-                    best_rot_seg_err[key] = rot_seg_err
-                    best_rot_acc_epoch[key] = epoch
-                    state_dict_acc = model.state_dict()
-                    print("Lowest error (saving model)")
-                    if key == 'val':
-                        torch.save(state_dict_acc, 'results/{}/{}-best_rot_acc-val_seq-{}-test_seq-{}.pth'.format(config['date'], ts, args.val_seq[0], args.test_seq[0]))
+                # if rot_seg_err < best_rot_seg_err[key]:
+                #     best_rot_seg_err[key] = rot_seg_err
+                #     best_rot_acc_epoch[key] = epoch
+                #     state_dict_acc = model.state_dict()
+                #     print("Lowest error (saving model)")
+                #     if key == 'val':
+                #         torch.save(state_dict_acc, 'results/{}/{}-best_rot_acc-val_seq-{}-test_seq-{}.pth'.format(config['date'], ts, args.val_seq[0], args.test_seq[0]))
                 if trans_err < best_trans_err[key]:
                     best_trans_err[key] = trans_err
                     best_trans_acc_epoch[key] = epoch
@@ -189,7 +189,7 @@ def main():
                     print("Most Loop Closures detected ({})".format(most_loop_closure[key]))
                     if key == 'val':
                         torch.save(state_dict_loop_closure, 'results/{}/{}-most_loop_closures-val_seq-{}-test_seq-{}.pth'.format(config['date'], ts, args.val_seq[0], args.test_seq[0]))
-                results[key]['best_rot_acc_epoch'] = best_rot_acc_epoch[key]
+                #results[key]['best_rot_acc_epoch'] = best_rot_acc_epoch[key]
                 results[key]['best_trans_acc_epoch'] = best_trans_acc_epoch[key]
                 results[key]['best_loss_epoch'] = best_loss_epoch[key]
                 results[key]['best_loop_closure_epoch'] = most_loop_closure_epoch[key] 

@@ -151,16 +151,16 @@ def test_trajectory(device, pose_model, spatial_trans, dset, epoch):
         print("Corr. mean trans. error: {} | mean rot. error: {}".format(corr_mean_trans, corr_mean_rot*180/np.pi))
         print("Corr. (rot. only) mean trans. error: {} | mean rot. error: {}".format(corr_rot_mean_trans, corr_rot_mean_rot*180/np.pi))
         
-        seg_lengths = list(range(100,801,100))
-        _, seg_errs_est = tm_est.segment_errors(seg_lengths, rot_unit='rad')
-        _, seg_errs_corr = tm_corr.segment_errors(seg_lengths, rot_unit='rad')
-        _, seg_errs_corr_rot = tm_corr_rot.segment_errors(seg_lengths, rot_unit='rad')
-        print("Odom. mean Segment Errors: {} (trans, %) | {} (rot, deg/100m)".format(np.mean(seg_errs_est[:,1])*100, 100*np.mean(seg_errs_est[:,2])*180/np.pi))
-        print("Corr. mean Segment Errors: {} (trans, %) | {} (rot, deg/100m)".format(np.mean(seg_errs_corr[:,1])*100, 100*np.mean(seg_errs_corr[:,2])*180/np.pi))
-        print("Corr. (rot. only) mean Segment Errors: {} (trans, %) | {} (rot, deg/100m)".format(np.mean(seg_errs_corr_rot[:,1])*100, 100*np.mean(seg_errs_corr_rot[:,2])*180/np.pi)) 
+    #     seg_lengths = list(range(100,801,100))
+    #     _, seg_errs_est = tm_est.segment_errors(seg_lengths, rot_unit='rad')
+    #     _, seg_errs_corr = tm_corr.segment_errors(seg_lengths, rot_unit='rad')
+    #     _, seg_errs_corr_rot = tm_corr_rot.segment_errors(seg_lengths, rot_unit='rad')
+    #     print("Odom. mean Segment Errors: {} (trans, %) | {} (rot, deg/100m)".format(np.mean(seg_errs_est[:,1])*100, 100*np.mean(seg_errs_est[:,2])*180/np.pi))
+    #     print("Corr. mean Segment Errors: {} (trans, %) | {} (rot, deg/100m)".format(np.mean(seg_errs_corr[:,1])*100, 100*np.mean(seg_errs_corr[:,2])*180/np.pi))
+    #     print("Corr. (rot. only) mean Segment Errors: {} (trans, %) | {} (rot, deg/100m)".format(np.mean(seg_errs_corr_rot[:,1])*100, 100*np.mean(seg_errs_corr_rot[:,2])*180/np.pi)) 
         
-    rot_seg_err = 100*np.mean(seg_errs_corr_rot[:,2])*180/np.pi
+    # rot_seg_err = 100*np.mean(seg_errs_corr_rot[:,2])*180/np.pi
 
     return corrections_stacked, gt_corrections_stacked, full_corr_lie_alg_stacked, vo_lie_alg_stacked, gt_lie_alg_stacked, \
-        np.array(corr_traj), np.array(corr_traj_rot), np.array(est_traj), np.array(gt_traj), rot_seg_err, corr_rot_mean_trans, np.array(cum_dist)
+        np.array(corr_traj), np.array(corr_traj_rot), np.array(est_traj), np.array(gt_traj),  corr_rot_mean_trans, np.array(cum_dist)
         

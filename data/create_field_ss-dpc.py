@@ -16,7 +16,7 @@ args = parser.parse_args()
 target_dir = args.target_dir
 os.makedirs(target_dir, exist_ok=True)
 seq_info = {}
-sequences = ['seq0']
+sequences = ['seq1']
 
 args.height = 240 # 240 or 360
 args.width = 376  # 376 or 564
