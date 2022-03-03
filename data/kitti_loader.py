@@ -43,9 +43,16 @@ class KittiLoaderPytorch(torch.utils.data.Dataset):
         #         '21': '21',
             
         #         }
-        seq_names= {'01': 'seq1',
+        seq_names= {'00': 'seq0',
+                    '01': 'seq1',
                     '02': 'seq2',
                     '03': 'seq3',
+                    '04': 'seq4',
+                    '05': 'seq5',
+                    '06': 'seq6',
+                    '07': 'seq7',
+                    '08': 'seq8',
+                    '09': 'seq9'
                 }
 
         self.config = config
