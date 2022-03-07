@@ -20,6 +20,7 @@ import torch.backends.cudnn as cudnn
 import os
  
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+print('WE ARE USING: ', device)
 
 parser = argparse.ArgumentParser(description='training arguments.')
 parser.add_argument('--data_dir', type=str, default='/home/keb-kz/Thesis/VIO/field-dpc-processed')
@@ -56,13 +57,13 @@ for k in args.__dict__:
 
 dsets = {x: KittiLoaderPytorch(args.data_dir, config, [args.train_seq, args.val_seq, args.test_seq], mode=x, transform_img=get_data_transforms(config)[x], num_frames = config['num_frames'], \
                                augment=config['augment_motion'], skip=config['skip'], augment_backwards=config['augment_backwards']) for x in ['train', 'val']}
-dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=config['minibatch'], shuffle=True, num_workers=4) for x in ['train', 'val']}
+dset_loaders = {x: torch.utils.data.DataLoader(dsets[x], batch_size=config['minibatch'], shuffle=True, num_workers=2) for x in ['train', 'val']}
 
 val_dset = KittiLoaderPytorch(args.data_dir, config, [args.train_seq, args.val_seq, args.test_seq], mode='val', transform_img=get_data_transforms(config)['val'])
-val_dset_loaders = torch.utils.data.DataLoader(val_dset, batch_size=config['minibatch'], shuffle=False, num_workers=4)
+val_dset_loaders = torch.utils.data.DataLoader(val_dset, batch_size=config['minibatch'], shuffle=False, num_workers=2)
 
 test_dset = KittiLoaderPytorch(args.data_dir, config, [args.train_seq, args.val_seq, args.test_seq], mode='test', transform_img=get_data_transforms(config)['val'])
-test_dset_loaders = torch.utils.data.DataLoader(test_dset, batch_size=config['minibatch'], shuffle=False, num_workers=4)
+test_dset_loaders = torch.utils.data.DataLoader(test_dset, batch_size=config['minibatch'], shuffle=False, num_workers=2)
 
 eval_dsets = {'val': val_dset_loaders, 'test':test_dset_loaders}
 
