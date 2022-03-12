@@ -9,8 +9,8 @@ from liegroups import SE3
 import glob
 
 parser = argparse.ArgumentParser(description='arguments.')
-parser.add_argument("--source_dir", type=str, default='/home/keb-kz/Thesis/VIO/field-dpc/')
-parser.add_argument("--target_dir", type=str, default='/home/keb-kz/Thesis/VIO/field-dpc-processed/')
+parser.add_argument("--source_dir", type=str, default='/home/zamzam/Thesis/VIO/field-dpc/')
+parser.add_argument("--target_dir", type=str, default='/home/zamzam/Thesis/VIO/field-dpc-processed/')
 parser.add_argument("--remove_static", action='store_true', default=True)
 args = parser.parse_args()
 

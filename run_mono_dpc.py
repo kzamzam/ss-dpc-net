@@ -23,7 +23,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 print('WE ARE USING: ', device)
 
 parser = argparse.ArgumentParser(description='training arguments.')
-parser.add_argument('--data_dir', type=str, default='/home/keb-kz/Thesis/VIO/field-dpc-processed')
+parser.add_argument('--data_dir', type=str, default='/home/zamzam/Thesis/VIO/field-dpc-processed')
 parser.add_argument('--date', type=str, default='0000000')
 parser.add_argument('--train_seq', nargs='+', type=str, default=['all'])
 parser.add_argument('--val_seq', nargs='+',type=str, default=['00'])
