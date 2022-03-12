@@ -6,6 +6,7 @@ import concurrent.futures
 from PIL import Image
 import argparse
 from liegroups import SE3
+import glob
 
 parser = argparse.ArgumentParser(description='arguments.')
 parser.add_argument("--source_dir", type=str, default='/home/keb-kz/Thesis/VIO/field-dpc/')
@@ -16,7 +17,7 @@ args = parser.parse_args()
 target_dir = args.target_dir
 os.makedirs(target_dir, exist_ok=True)
 seq_info = {}
-sequences = ['seq9']
+sequences = ['seq1']
 
 args.height = 240 # 240 or 360
 args.width = 376  # 376 or 564
@@ -52,14 +53,12 @@ for i,seq in enumerate(sequences):
     k_cam2[1,1] = 523.6203264165226
     k_cam2[1,2] = 354.2121110249518
     k_cam2[2,2] = 1
+    
     seq_info['intrinsics'] =k_cam2.reshape((-1,3,3)).repeat(msckf_data['poses_gt'].shape[2],0)
     i = 0
     with concurrent.futures.ProcessPoolExecutor() as executor: 
         # put file names for cam2 in np array
-        cam2_files = os.listdir(args.source_dir+seq+'/image_02')
-        for n,file in enumerate(cam2_files):
-            file = args.source_dir+seq+'/image_02/'+file
-            cam2_files[n] = file
+        cam2_files = sorted(glob.glob(args.source_dir+seq+'/image_02/*.png'))
         for filename, output in zip(cam2_files, executor.map(load_image, cam2_files)):
             img, zoomx, zoomy, orig_img_width, orig_img_height = output
             new_filename = os.path.join(target_dir, filename.split(args.source_dir)[1]).replace('.png','.jpg')

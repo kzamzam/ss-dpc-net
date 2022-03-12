@@ -17,11 +17,12 @@ from liegroups import SE3
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 device = torch.device(0)
+print(device)
 
 parser = argparse.ArgumentParser(description='')
-parser.add_argument('--data_dir', type=str, default='/media/datasets/KITTI-dpc/')
+parser.add_argument('--data_dir', type=str, default='/home/keb-kz/Thesis/VIO/field-dpc-processed')
 parser.add_argument('--estimator_type', type=str, default='stereo')
-parser.add_argument('--val_seq', nargs='+',type=str, default='05')
+parser.add_argument('--val_seq', nargs='+',type=str, default='01')
 parser.add_argument('--exploss', action='store_true', default=True)
 config={
     'num_frames': None,
@@ -44,6 +45,7 @@ for k in args.__dict__:
 model_dirs = 'paper_plots_and_data/'
 date = 'best_stereo'
 pretrained_path = '{}/{}/2019-6-24-13-4-most_loop_closures-val_seq-00-test_seq-05.pth'.format(model_dirs, date)
+pretrained_path = '/home/keb-kz/ss-dpc-net/results/3.8/2022-3-8-14-55-best_trans_acc-val_seq-01-test_seq-05.pth'
 
 output_dir = '{}{}/'.format(model_dirs,date)
 seq = [args.val_seq] #model.replace(output_dir,'').replace('/','').replace
@@ -54,13 +56,13 @@ os.makedirs(figures_output_dir+'/depth', exist_ok=True)
 os.makedirs(figures_output_dir+'/exp_mask', exist_ok=True)
 
 test_dset = KittiLoaderPytorch(args.data_dir, config, [seq, seq, seq], mode='test', transform_img=get_data_transforms(config)['val'])
-test_dset_loaders = torch.utils.data.DataLoader(test_dset, batch_size=config['minibatch'], shuffle=False, num_workers=4)
+test_dset_loaders = torch.utils.data.DataLoader(test_dset, batch_size=config['minibatch'], shuffle=False, num_workers=2)
 eval_dsets = {'test': test_dset_loaders}
 Reconstructor = stn.Reconstructor().to(device)
 model = mono_model_joint.joint_model(num_img_channels=(6 + 2*config['use_flow']), output_exp=args.exploss, dropout_prob=config['dropout_prob']).to(device)
-model.load_state_dict(torch.load(pretrained_path))
+model.load_state_dict(torch.load(pretrained_path,device))
 
-_, _, _, _, _, corr_traj, corr_traj_rot, est_traj, gt_traj, _, _, _ = test_trajectory(device, model, Reconstructor, test_dset_loaders, 0)
+_, _, _, _, _, corr_traj, corr_traj_rot, est_traj, gt_traj, _, _ = test_trajectory(device, model, Reconstructor, test_dset_loaders, 0)
 
 est_traj_se3 = [SE3.from_matrix(T, normalize=True) for T in est_traj]
 corr_traj_rot_se3 = [SE3.from_matrix(T, normalize=True) for T in corr_traj_rot]
