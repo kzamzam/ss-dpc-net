@@ -20,6 +20,8 @@ class photometric_reconstruction_loss(nn.Module):
         super(photometric_reconstruction_loss, self).__init__()
     
     def forward(self, input_img, output_img, exp_mask=None, pose_vec_weight=None, validate=False):
+        alpha_rot = 4
+        cutoff_rot = 0.005
         B,_,h,w = input_img.size()
         output_img = nn.functional.adaptive_avg_pool2d(output_img, (h, w))  
         reconstruction_loss = 0
@@ -28,13 +30,14 @@ class photometric_reconstruction_loss(nn.Module):
         if exp_mask is not None and validate == False:
             diff=diff*(exp_mask.expand_as(diff)) #expand_as makes the 1 channel mask 3 channels if imgs are colour
         if pose_vec_weight is not None:
-            pose_vec_mask = pose_vec_weight[:,3:6].norm(dim=1) >=0.005
+            print("The rotation is: ", pose_vec_weight[:,3:6].norm(dim=1))
+            pose_vec_mask = pose_vec_weight[:,3:6].norm(dim=1) >=cutoff_rot
             pose_vec_mask = pose_vec_mask.cpu().detach().numpy().reshape((-1,1))
             pose_vec_mask = np.repeat(pose_vec_mask, output_img.size(2),axis=1)
             pose_vec_mask = np.repeat(pose_vec_mask.reshape((-1, output_img.size(2),1)),output_img.size(3),axis=2)
             pose_vec_mask = torch.FloatTensor(pose_vec_mask).unsqueeze(1).expand_as(output_img)
             if validate == False:
-                diff = diff + 4*diff*(pose_vec_mask.type_as(output_img))
+                diff = diff + alpha_rot*diff*(pose_vec_mask.type_as(output_img))
             if validate == True:
                 gradient_mask = compute_gradient_mask(output_img)
                 diff = diff*gradient_mask.expand_as(input_img)
