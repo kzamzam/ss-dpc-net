@@ -44,6 +44,7 @@ class KittiLoaderPytorch(torch.utils.data.Dataset):
             
         #         }
         seq_names= {
+                    '00': 'seq0',
                     '01': 'seq1',
                     '02': 'seq2',
                     '03': 'seq3',
@@ -159,7 +160,7 @@ class KittiLoaderPytorch(torch.utils.data.Dataset):
         imgs = []
         for i in range(0,self.seq_len):
             if idx >= len(self.left_img_samples[:,0]):
-                print('Adding repeated image')
+                #print('Adding repeated image')
                 imgs.append(self.load_image(self.left_img_samples[-1,i]))
             else:
                 imgs.append(self.load_image(self.left_img_samples[idx,i]))
@@ -174,7 +175,24 @@ class KittiLoaderPytorch(torch.utils.data.Dataset):
             for i in range(0,len(imgs)-1):  
                 flow_img1 = np.array(Image.fromarray(orig_imgs[i]).convert('L'))
                 flow_img2 = np.array(Image.fromarray(orig_imgs[i+1]).convert('L'))
-                flow_img = cv2.calcOpticalFlowFarneback(flow_img1,flow_img2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+                #cv2.imshow('1',flow_img1)
+                #cv2.waitKey(1)
+                # Create mask
+                hsv_mask = np.zeros_like(Image.fromarray(orig_imgs[i]))
+                # Make image saturation to a maximum value
+                hsv_mask[..., 1] = 255
+                flow_img = cv2.calcOpticalFlowFarneback(flow_img1,flow_img2, None, pyr_scale=0.5,levels= 5,winsize=15,iterations= 3,poly_n=5,poly_sigma= 1.2,flags= 0)
+                # Compute magnite and angle of 2D vector
+                mag, ang = cv2.cartToPolar(flow_img[..., 0], flow_img[..., 1])
+                # Set image hue value according to the angle of optical flow
+                hsv_mask[..., 0] = ang * 180 / np.pi / 2
+                # Set value as per the normalized magnitude of optical flow
+                hsv_mask[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+                # Convert to rgb
+                rgb_representation = cv2.cvtColor(hsv_mask, cv2.COLOR_HSV2BGR)
+                cv2.imshow('frame2', rgb_representation)
+                cv2.waitKey(2)
+
                 flow_img = torch.from_numpy(np.transpose(flow_img, (2,0,1))).float()
                 orig_imgs = [torch.from_numpy(np.transpose(im, (2, 0, 1))).float()/255 for im in orig_imgs]
                 imgs.append(flow_img)
