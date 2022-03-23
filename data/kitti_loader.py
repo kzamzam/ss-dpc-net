@@ -9,6 +9,39 @@ from liegroups import SE3, SO3
 import os
 import glob
 
+def draw_flow(img, flow, step=16):
+
+    h, w = img.shape[:2]
+    y, x = np.mgrid[step/2:h:step, step/2:w:step].reshape(2,-1).astype(int)
+    fx, fy = flow[y,x].T
+
+    lines = np.vstack([x, y, x-fx, y-fy]).T.reshape(-1, 2, 2)
+    lines = np.int32(lines + 0.5)
+
+    img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    cv2.polylines(img_bgr, lines, 0, (0, 255, 0))
+
+    for (x1, y1), (_x2, _y2) in lines:
+        cv2.circle(img_bgr, (x1, y1), 1, (0, 255, 0), -1)
+
+    return img_bgr
+
+
+def draw_hsv(flow):
+
+    h, w = flow.shape[:2]
+    fx, fy = flow[:,:,0], flow[:,:,1]
+
+    ang = np.arctan2(fy, fx) + np.pi
+    v = np.sqrt(fx*fx+fy*fy)
+
+    hsv = np.zeros((h, w, 3), np.uint8)
+    hsv[...,0] = ang*(180/np.pi/2)
+    hsv[...,1] = 255
+    hsv[...,2] = np.minimum(v*4, 255)
+    bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+    return bgr
 class KittiLoaderPytorch(torch.utils.data.Dataset):
     """Loads the KITTI Odometry Benchmark Dataset"""
     def __init__(self, basedir, config, seq, mode='train', transform_img=None, num_frames=None, augment=False, skip=None, augment_backwards=False):
@@ -172,26 +205,20 @@ class KittiLoaderPytorch(torch.utils.data.Dataset):
         if self.transform_img != None:
             imgs, intrinsics, gt_lie_alg = self.transform_img(imgs, intrinsics, gt_lie_alg)          
         if self.config['use_flow']:
+            scale_mag = 7 ## scale magnitude of optical flow due to slow motion
             for i in range(0,len(imgs)-1):  
                 flow_img1 = np.array(Image.fromarray(orig_imgs[i]).convert('L'))
                 flow_img2 = np.array(Image.fromarray(orig_imgs[i+1]).convert('L'))
+                
                 #cv2.imshow('1',flow_img1)
                 #cv2.waitKey(1)
-                # Create mask
-                hsv_mask = np.zeros_like(Image.fromarray(orig_imgs[i]))
-                # Make image saturation to a maximum value
-                hsv_mask[..., 1] = 255
+
                 flow_img = cv2.calcOpticalFlowFarneback(flow_img1,flow_img2, None, pyr_scale=0.5,levels= 5,winsize=15,iterations= 3,poly_n=5,poly_sigma= 1.2,flags= 0)
-                # Compute magnite and angle of 2D vector
-                mag, ang = cv2.cartToPolar(flow_img[..., 0], flow_img[..., 1])
-                # Set image hue value according to the angle of optical flow
-                hsv_mask[..., 0] = ang * 180 / np.pi / 2
-                # Set value as per the normalized magnitude of optical flow
-                hsv_mask[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
-                # Convert to rgb
-                rgb_representation = cv2.cvtColor(hsv_mask, cv2.COLOR_HSV2BGR)
-                cv2.imshow('frame2', rgb_representation)
-                cv2.waitKey(2)
+                flow_img *= scale_mag
+                
+                cv2.imshow('flow', draw_flow(flow_img2, flow_img))
+                cv2.imshow('flow HSV', draw_hsv(flow_img))
+                cv2.waitKey(1)
 
                 flow_img = torch.from_numpy(np.transpose(flow_img, (2,0,1))).float()
                 orig_imgs = [torch.from_numpy(np.transpose(im, (2, 0, 1))).float()/255 for im in orig_imgs]
