@@ -8,16 +8,18 @@ import argparse
 from liegroups import SE3
 import glob
 
+from torch import greater
+
 parser = argparse.ArgumentParser(description='arguments.')
-parser.add_argument("--source_dir", type=str, default='/home/zamzam/Thesis/VIO/field-dpc/')
-parser.add_argument("--target_dir", type=str, default='/home/zamzam/Thesis/VIO/field-dpc-processed/')
+parser.add_argument("--source_dir", type=str, default='/home/keb-kz/Thesis/VIO/field-dpc/')
+parser.add_argument("--target_dir", type=str, default='/home/keb-kz/Thesis/VIO/field-dpc-processed/')
 parser.add_argument("--remove_static", action='store_true', default=True)
 args = parser.parse_args()
 
 target_dir = args.target_dir
 os.makedirs(target_dir, exist_ok=True)
 seq_info = {}
-sequences = ['seq9']
+sequences = ['seq0']
 
 args.height = 240 # 240 or 360
 args.width = 376  # 376 or 564
@@ -48,20 +50,20 @@ for i,seq in enumerate(sequences):
     
     ###store filenames of camera data, and intrinsic matrix
     k_cam2 = np.zeros((3,3))
-    k_cam2[0,0] = 522.6502452882021
-    k_cam2[0,2] = 636.7345279176698
-    k_cam2[1,1] = 523.6203264165226
-    k_cam2[1,2] = 354.2121110249518
+    k_cam2[0,0] = 519.02520752 
+    k_cam2[0,2] = 611.36320756
+    k_cam2[1,1] = 503.22573853
+    k_cam2[1,2] = 330.57750304
     k_cam2[2,2] = 1
     
     seq_info['intrinsics'] =k_cam2.reshape((-1,3,3)).repeat(msckf_data['poses_gt'].shape[2],0)
     i = 0
     with concurrent.futures.ProcessPoolExecutor() as executor: 
         # put file names for cam2 in np array
-        cam2_files = sorted(glob.glob(args.source_dir+seq+'/image_02/*.png'))
+        cam2_files = sorted(glob.glob(args.source_dir+seq+'/image_02/*.jpg'))
         for filename, output in zip(cam2_files, executor.map(load_image, cam2_files)):
             img, zoomx, zoomy, orig_img_width, orig_img_height = output
-            new_filename = os.path.join(target_dir, filename.split(args.source_dir)[1]).replace('.png','.jpg')
+            new_filename = os.path.join(target_dir, filename.split(args.source_dir)[1])#.replace('.png','.jpg')
             imageio.imwrite(new_filename, img)
             seq_info['intrinsics'][i,0] *= zoomx
             seq_info['intrinsics'][i,1] *= zoomy
@@ -92,11 +94,16 @@ for i,seq in enumerate(sequences):
     
     ###filter out frames with low rotational or translational velocities
     for seq_info in [stereo_seq_info]:
+        max = 0
+        sum = 0
+        count = 0
+        limit = 0.025
         if args.remove_static:
             print("Removing Static frames from {}".format(seq))            
             deleting = True
             
             while deleting:
+                greater_count = 0
                 idx_list = []
                 sparse_traj = np.copy(seq_info['sparse_vo'])
                 for i in range(0,sparse_traj.shape[0]-1,2):
@@ -106,9 +113,16 @@ for i,seq in enumerate(sequences):
                     pose_vec = dT.log()
                     trans_norm = np.linalg.norm(pose_vec[0:3])
                     rot_norm = np.linalg.norm(pose_vec[3:6])
-                    #print('Frame: ',i)
-                    #print('trans: ', trans_norm, ' rot: ', rot_norm)
-                    #print('-------------------------------------')
+                    # print('Frame: ',i)
+                    # print('trans: ', trans_norm, ' rot: ', rot_norm)
+                    # print('-------------------------------------')
+                    sum += rot_norm
+                    count += 1
+                    if rot_norm > max: 
+                        max = rot_norm
+                        print("The maximum till now is: ", max)
+                    if rot_norm > limit:
+                        greater_count += 1
                     if trans_norm < 0.001 and rot_norm < 0.0004: #0.007
                         idx_list.append(i)
                 if len(idx_list) == 0:
@@ -117,11 +131,14 @@ for i,seq in enumerate(sequences):
                 print('deleting {} frames'.format(len(idx_list)))
                 print('original length: {}'.format(seq_info['cam_02'].shape))
                 
+                seq_info['intrinsics'] = np.delete(seq_info['intrinsics'],idx_list,axis=0)
                 seq_info['cam_02'] = np.delete(seq_info['cam_02'],idx_list,axis=0)
                 seq_info['cam_03'] = np.delete(seq_info['cam_03'],idx_list,axis=0)
                 seq_info['sparse_gt_pose'] = np.delete(seq_info['sparse_gt_pose'],idx_list,axis=0)
                 seq_info['sparse_vo'] = np.delete(seq_info['sparse_vo'],idx_list,axis=0)
                 print('final length: {}'.format(seq_info['cam_02'].shape))
+                print ('average rot :', sum/count)
+                print('Total more than limit: ', greater_count)
 
     
     sio.savemat(seq_dir + '/stereo_data.mat', stereo_seq_info)
